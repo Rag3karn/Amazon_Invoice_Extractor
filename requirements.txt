@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+pdfminer.six
+pandas
+openpyxl
+python-multipart
