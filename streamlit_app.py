@@ -71,6 +71,9 @@ def download_excel():
         
         if response.status_code == 200:
             return response.content
+        elif response.status_code == 404:
+            st.error("No Excel file available. Please process invoices and generate Excel first.")
+            return None
         else:
             st.error(f"Download Error: {response.status_code}")
             return None
@@ -205,6 +208,7 @@ def main():
                         st.success("✅ Excel file generated successfully!")
                         st.info(f"📈 {excel_result['records_added']} records added to Excel file")
                         st.session_state.excel_ready = True
+                        st.session_state.excel_filename = excel_result['filename']
                     else:
                         st.error("❌ Failed to generate Excel file")
             else:
@@ -216,11 +220,13 @@ def main():
                 excel_content = download_excel()
                 
                 if excel_content:
+                    filename = st.session_state.get('excel_filename', 'amazon_invoices.xlsx')
                     st.download_button(
-                        label="💾 Download amazon_invoices.xlsx",
+                        label=f"💾 Download {filename}",
                         data=excel_content,
-                        file_name="amazon_invoices.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        file_name=filename,
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        key="download_button"
                     )
                     st.success("✅ Excel file ready for download!")
                 else:

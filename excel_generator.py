@@ -1,15 +1,21 @@
 import pandas as pd
 import os
 from typing import List, Dict
+from datetime import datetime
 
 class ExcelGenerator:
-    def __init__(self, filename: str = "amazon_invoices.xlsx"):
-        self.filename = filename
-        self.filepath = os.path.join(os.getcwd(), filename)
+    def __init__(self, filename: str = None):
+        if filename is None:
+            # Generate filename with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self.filename = f"amazon_invoices_{timestamp}.xlsx"
+        else:
+            self.filename = filename
+        self.filepath = os.path.join(os.getcwd(), self.filename)
     
     def create_or_append_excel(self, data_list: List[Dict]) -> str:
         """
-        Create new Excel file or append to existing one
+        Create new Excel file with the data
         """
         # Define the column order for the Excel file
         columns = [
@@ -22,22 +28,13 @@ class ExcelGenerator:
         ]
         
         # Convert list of dictionaries to DataFrame
-        new_df = pd.DataFrame(data_list)
+        df = pd.DataFrame(data_list)
         
         # Reorder columns to match our desired structure
-        new_df = new_df.reindex(columns=columns, fill_value='')
+        df = df.reindex(columns=columns, fill_value='')
         
-        # Check if file exists
-        if os.path.exists(self.filepath):
-            # Read existing data
-            existing_df = pd.read_excel(self.filepath)
-            # Append new data
-            combined_df = pd.concat([existing_df, new_df], ignore_index=True)
-        else:
-            combined_df = new_df
-        
-        # Save to Excel
-        combined_df.to_excel(self.filepath, index=False)
+        # Save to Excel (always create new file)
+        df.to_excel(self.filepath, index=False)
         
         return self.filepath
     

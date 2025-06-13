@@ -6,39 +6,48 @@ import os
 # Create a router instance
 router = APIRouter()
 
-# Global Excel generator instance
-excel_gen = ExcelGenerator()
+# Store the latest Excel file path
+latest_excel_path = None
 
 @router.get("/download-excel")
 def download_excel():
     """Download the generated Excel file"""
-    filepath = excel_gen.get_filepath()
+    global latest_excel_path
     
-    if not excel_gen.file_exists():
+    if not latest_excel_path or not os.path.exists(latest_excel_path):
         raise HTTPException(status_code=404, detail="Excel file not found. Please process some invoices first.")
     
     return FileResponse(
-        path=filepath,
-        filename="amazon_invoices.xlsx",
+        path=latest_excel_path,
+        filename=os.path.basename(latest_excel_path),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
 @router.post("/generate-excel")
 def generate_excel(data: dict):
-    """Generate or append to Excel file with processed invoice data"""
+    """Generate Excel file with processed invoice data"""
     try:
+        global latest_excel_path
+        
         # Extract the results from the data
         results = data.get("results", [])
         
         if not results:
             raise HTTPException(status_code=400, detail="No results provided")
         
-        # Generate/append to Excel
+        # Create new ExcelGenerator instance
+        excel_gen = ExcelGenerator()
+        
+        # Generate Excel
         filepath = excel_gen.create_or_append_excel(results)
         
+        # Store the latest file path
+        latest_excel_path = filepath
+        
         return {
-            "message": "Excel file generated/updated successfully",
+            "message": "Excel file generated successfully",
             "filepath": filepath,
+            "filename": excel_gen.filename,
             "records_added": len(results)
         }
     
