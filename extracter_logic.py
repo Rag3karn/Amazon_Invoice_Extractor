@@ -29,7 +29,7 @@ def extract_invoice_data(pdf_path: str) -> dict:
     result["invoice_number"] = invoice_match.group(1) if invoice_match else None
     
     # Invoice Details: MH-BOM7-1931441115-2526
-    invoice_details_match = re.search(r'Invoice Details :([A-Z]{2}-[A-Z0-9]+-\d+-\d+)', text)
+    invoice_details_match = re.search(r'Invoice Details :([A-Z]{2}-[A-Z0-9]+-\d+-\d+|[A-Z0-9-]+)', text)
     result["invoice_details"] = invoice_details_match.group(1) if invoice_details_match else None
     
     # Invoice Date: 10.06.2025
@@ -53,8 +53,8 @@ def extract_invoice_data(pdf_path: str) -> dict:
     result["place_of_delivery"] = delivery_match.group(1) if delivery_match else None
     
     # Updated Seller Name and Address extraction
-    # Extract everything after "Sold By :" until "IN"
-    seller_section_match = re.search(r'Sold By :\s*(.*?)\s*IN', text, re.DOTALL | re.IGNORECASE)
+    # Extract everything after "Sold By :" until "IN" or "*"
+    seller_section_match = re.search(r'Sold By :\s*(.*?)(?:\s*IN|\s*\*)', text, re.DOTALL | re.IGNORECASE)
     if seller_section_match:
         seller_section = seller_section_match.group(1).strip()
         # Clean up whitespace and split into lines
@@ -73,11 +73,11 @@ def extract_invoice_data(pdf_path: str) -> dict:
             result["seller_address"] = None
     else:
         # Fallback to original logic if the new pattern doesn't match
-        seller_match = re.search(r'Sold By :\s*([A-Za-z][A-Za-z\s&.,()]+?)\s*\*', text)
+        seller_match = re.search(r'Sold By :\s*([A-Za-z][A-Za-z\s&.,()]+?)(?:\s*\*|\s*IN)', text)
         result["seller_name"] = seller_match.group(1).strip() if seller_match else None
         
         # Seller Address: Everything after * until PAN No
-        seller_addr_match = re.search(r'Sold By :.*?\*\s*(.*?)\s*PAN No:', text, re.DOTALL)
+        seller_addr_match = re.search(r'(?:\*|IN)\s*(.*?)\s*PAN No:', text, re.DOTALL)
         if seller_addr_match:
             addr = seller_addr_match.group(1).strip()
             addr = re.sub(r'\s+', ' ', addr)  # Clean whitespace
