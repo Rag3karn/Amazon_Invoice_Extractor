@@ -1,6 +1,26 @@
-# Amazon Invoice Extractor
+# InvoiceBlaze
 
-A powerful tool to extract data from Amazon invoice PDFs and generate Excel reports with a user-friendly Streamlit interface.
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![PDF](https://img.shields.io/badge/PDF-FF0000?style=for-the-badge&logo=adobe-acrobat-reader&logoColor=white)
+![Excel](https://img.shields.io/badge/Excel-217346?style=for-the-badge&logo=microsoft-excel&logoColor=white)
+
+## 📑 Table of Contents
+- [Features](#-features)
+- [Extracted Data Fields](#-extracted-data-fields)
+- [Installation](#️-installation)
+- [Usage](#-usage)
+  - [Method 1: Using the Web Interface](#method-1-using-the-web-interface-recommended)
+  - [Method 2: Using API Endpoints Directly](#method-2-using-api-endpoints-directly)
+- [Project Structure](#-project-structure)
+- [Configuration](#-configuration)
+- [Excel Output](#-excel-output)
+- [Error Handling](#️-error-handling)
+- [Contributing](#-contributing)
+- [License](#-license)
+- [Troubleshooting](#-troubleshooting)
+- [Future Enhancements](#-future-enhancements)
 
 ## 🚀 Features
 
