@@ -10,13 +10,14 @@ def main():
     """Run the Streamlit app"""
     print("🎨 Starting Amazon Invoice Extractor Frontend...")
     print("🌐 Frontend will be available at: http://localhost:8501")
+    print("🌐 Alternative access: http://127.0.0.1:8501")
     print("\n" + "="*50)
     
     try:
         subprocess.run([
             sys.executable, "-m", "streamlit", "run", "streamlit_app.py",
             "--server.port", "8501",
-            "--server.address", "0.0.0.0"
+            "--server.address", "localhost"
         ])
     except KeyboardInterrupt:
         print("\n🛑 Frontend stopped by user")
