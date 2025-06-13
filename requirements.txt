@@ -4,3 +4,4 @@ pdfminer.six
 pandas
 openpyxl
 python-multipart
+slowapi
