@@ -11,8 +11,9 @@ from excel_download_api import router as excel_router
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+import os
 
-app = FastAPI()
+app = FastAPI(title="Amazon Invoice Extractor API", version="1.0.0")
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -47,23 +48,28 @@ async def process_text(text):
 @app.post("/extract-invoice")
 @limiter.limit("10/minute")
 async def extract_invoice(request: Request, file: UploadFile = File(...)):
+    """Extract data from a single invoice PDF"""
     try:
+        # Validate file type
+        if not file.filename.lower().endswith('.pdf'):
+            raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+        
         # Save uploaded file to temp location
         file_ext = file.filename.split(".")[-1]
         temp_path = f"{tempfile.gettempdir()}/{uuid.uuid4()}.{file_ext}"
         
         with open(temp_path, "wb") as f:
-            f.write(await file.read())
-        
-        # Extract text from PDF
-        text = extract_text(temp_path, page_numbers=[0])
+            content = await file.read()
+            f.write(content)
         
         # Process invoice data asynchronously
         result = await process_pdf(temp_path)
         
-        # Process table data asynchronously
-        table_data = await process_text(text)
-        result.update(table_data)
+        # Clean up temp file
+        try:
+            os.unlink(temp_path)
+        except:
+            pass
         
         # Cache result
         cache_id = str(uuid.uuid4())
@@ -72,4 +78,75 @@ async def extract_invoice(request: Request, file: UploadFile = File(...)):
         return {"cache_id": cache_id, "result": result}
     
     except Exception as e:
-        raise HTTPException(500, f"Processing error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Processing error: {str(e)}")
+
+@app.post("/extract-multiple-invoices")
+@limiter.limit("5/minute")
+async def extract_multiple_invoices(request: Request, files: List[UploadFile] = File(...)):
+    """Extract data from multiple invoice PDFs"""
+    try:
+        if len(files) > 10:  # Limit to 10 files at once
+            raise HTTPException(status_code=400, detail="Maximum 10 files allowed at once")
+        
+        results = []
+        
+        for file in files:
+            # Validate file type
+            if not file.filename.lower().endswith('.pdf'):
+                results.append({
+                    "filename": file.filename,
+                    "status": "failed",
+                    "error": "Only PDF files are allowed"
+                })
+                continue
+            
+            try:
+                # Save uploaded file to temp location
+                file_ext = file.filename.split(".")[-1]
+                temp_path = f"{tempfile.gettempdir()}/{uuid.uuid4()}.{file_ext}"
+                
+                with open(temp_path, "wb") as f:
+                    content = await file.read()
+                    f.write(content)
+                
+                # Process invoice data asynchronously
+                result = await process_pdf(temp_path)
+                result["original_filename"] = file.filename
+                results.append(result)
+                
+                # Clean up temp file
+                try:
+                    os.unlink(temp_path)
+                except:
+                    pass
+                    
+            except Exception as e:
+                results.append({
+                    "filename": file.filename,
+                    "status": "failed",
+                    "error": str(e)
+                })
+        
+        # Cache results
+        cache_id = str(uuid.uuid4())
+        result_cache[cache_id] = results
+        
+        return {
+            "cache_id": cache_id, 
+            "results": results,
+            "total_processed": len(results),
+            "successful": len([r for r in results if r.get("status") == "success"]),
+            "failed": len([r for r in results if r.get("status") == "failed"])
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Processing error: {str(e)}")
+
+@app.get("/health")
+def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "message": "Amazon Invoice Extractor API is running"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
