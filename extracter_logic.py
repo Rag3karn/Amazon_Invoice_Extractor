@@ -52,18 +52,38 @@ def extract_invoice_data(pdf_path: str) -> dict:
     delivery_match = re.search(r'Place of delivery:([A-Z]+)', text)
     result["place_of_delivery"] = delivery_match.group(1) if delivery_match else None
     
-    # Seller Name: RETAILEZ PRIVATE LIMITED
-    seller_match = re.search(r'Sold By :\s*([A-Z][A-Z\s&.,()]+?)\s*\*', text)
-    result["seller_name"] = seller_match.group(1).strip() if seller_match else None
-    
-    # Seller Address: Everything after * until PAN No
-    seller_addr_match = re.search(r'Sold By :.*?\*\s*(.*?)\s*PAN No:', text, re.DOTALL)
-    if seller_addr_match:
-        addr = seller_addr_match.group(1).strip()
-        addr = re.sub(r'\s+', ' ', addr)  # Clean whitespace
-        result["seller_address"] = addr
+    # Updated Seller Name and Address extraction
+    # Extract everything after "Sold By :" until "IN"
+    seller_section_match = re.search(r'Sold By :\s*(.*?)\s*IN', text, re.DOTALL | re.IGNORECASE)
+    if seller_section_match:
+        seller_section = seller_section_match.group(1).strip()
+        # Clean up whitespace and split into lines
+        seller_lines = [line.strip() for line in seller_section.split('\n') if line.strip()]
+        
+        if seller_lines:
+            # First line is the seller name
+            result["seller_name"] = seller_lines[0]
+            # Remaining lines form the seller address
+            if len(seller_lines) > 1:
+                result["seller_address"] = ' '.join(seller_lines[1:])
+            else:
+                result["seller_address"] = None
+        else:
+            result["seller_name"] = None
+            result["seller_address"] = None
     else:
-        result["seller_address"] = None
+        # Fallback to original logic if the new pattern doesn't match
+        seller_match = re.search(r'Sold By :\s*([A-Za-z][A-Za-z\s&.,()]+?)\s*\*', text)
+        result["seller_name"] = seller_match.group(1).strip() if seller_match else None
+        
+        # Seller Address: Everything after * until PAN No
+        seller_addr_match = re.search(r'Sold By :.*?\*\s*(.*?)\s*PAN No:', text, re.DOTALL)
+        if seller_addr_match:
+            addr = seller_addr_match.group(1).strip()
+            addr = re.sub(r'\s+', ' ', addr)  # Clean whitespace
+            result["seller_address"] = addr
+        else:
+            result["seller_address"] = None
     
     # Billing Address: After "Billing Address :" until "State/UT Code"
     billing_match = re.search(r'Billing Address :\s*(.*?)\s*State/UT Code:', text, re.DOTALL)
