@@ -5,8 +5,14 @@ from typing import List
 import tempfile
 import uuid
 from pdfminer.high_level import extract_text
+from concurrent.futures import ThreadPoolExecutor
+import asyncio
+from excel_download import router as excel_router
 
 app = FastAPI()
+
+# Create thread pool executor for async operations
+executor = ThreadPoolExecutor(max_workers=5)
 
 # CORS for frontend integration
 app.add_middleware(
@@ -16,8 +22,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include the excel download router
+app.include_router(excel_router)
+
 # In-memory cache for results
 result_cache = {}
+
+async def process_pdf(file_path):
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(executor, extract_invoice_data, file_path)
+
+async def process_text(text):
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(executor, extract_simple_table_data, text)
 
 @app.post("/extract-invoice")
 async def extract_invoice(file: UploadFile = File(...)):
@@ -32,11 +49,11 @@ async def extract_invoice(file: UploadFile = File(...)):
         # Extract text from PDF
         text = extract_text(temp_path, page_numbers=[0])
         
-        # Process invoice data
-        result = extract_invoice_data(temp_path)
+        # Process invoice data asynchronously
+        result = await process_pdf(temp_path)
         
-        # Add table data to the result
-        table_data = extract_simple_table_data(text)
+        # Process table data asynchronously
+        table_data = await process_text(text)
         result.update(table_data)
         
         # Cache result
