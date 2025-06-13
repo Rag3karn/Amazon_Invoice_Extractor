@@ -7,7 +7,7 @@ import pandas as pd
 
 # Configure Streamlit page
 st.set_page_config(
-    page_title="Amazon Invoice Extractor",
+    page_title="InvoiceBlaze",
     page_icon="📄",
     layout="wide",
     initial_sidebar_state="expanded"
